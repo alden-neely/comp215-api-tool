@@ -1,9 +1,13 @@
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "1.1.1"
+    id "org.jetbrains.kotlin.jvm" version "1.1.2"
 }
 
 apply plugin: "application"
 mainClassName = "com.github.aldenneely.apitool.AppKt"
+
+run {
+    args = ["-r", "/users/alden-neely/received_events", "-q", "NOTHING YET"]
+}
 
 repositories {
     mavenCentral()
@@ -11,7 +15,9 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:1.1.1"
+    compile "org.jetbrains.kotlin:kotlin-stdlib"
     compile 'com.github.salomonbrys.kotson:kotson:2.5.0'
     compile "com.xenomachina:kotlin-argparser:2.0.0"
+    compile 'com.github.kittinunf.fuel:fuel:1.7.0'
+    compile "com.jayway.jsonpath:json-path:2.2.0"
 }
