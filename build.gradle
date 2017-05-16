@@ -6,7 +6,7 @@ apply plugin: "application"
 mainClassName = "com.github.aldenneely.apitool.AppKt"
 
 run {
-    args = ["-r", "/users/alden-neely/received_events", "-q", "NOTHING YET"]
+    args = ["-r", "/users/alden-neely/events", "-f", "[?(@.type == 'PushEvent')]", "--deadline", ""]
 }
 
 repositories {
@@ -20,4 +20,5 @@ dependencies {
     compile "com.xenomachina:kotlin-argparser:2.0.0"
     compile 'com.github.kittinunf.fuel:fuel:1.7.0'
     compile "com.jayway.jsonpath:json-path:2.2.0"
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
 }
