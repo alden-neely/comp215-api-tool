@@ -6,8 +6,7 @@ apply plugin: "application"
 mainClassName = "com.github.aldenneely.apitool.AppKt"
 
 run {
-    //args = ["-r", "/users/alden-neely/events"]
-    args = ["--help"]
+    args = ["-r", "/users/alden-neely/events"]
 }
 
 repositories {
