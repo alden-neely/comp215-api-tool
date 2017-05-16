@@ -20,6 +20,10 @@ import com.jayway.jsonpath.spi.json.GsonJsonProvider
 import com.jayway.jsonpath.spi.json.JsonProvider
 import com.jayway.jsonpath.spi.mapper.GsonMappingProvider
 import com.jayway.jsonpath.spi.mapper.MappingProvider
+import com.xenomachina.argparser.DefaultHelpFormatter
+import com.xenomachina.argparser.ShowHelpException
+import java.io.BufferedWriter
+import java.io.StringWriter
 
 object GithubDateParser {
     private val DATE_FORMAT_STRING = "2011-09-06T17:26:27Z"
@@ -35,7 +39,8 @@ object GithubDateParser {
 }
 
 fun main(args: Array<String>) {
-    val parser = ArgParser(args)
+    val parser = ArgParser(args, helpFormatter=DefaultHelpFormatter())
+
     val parsedArgs = AppArgs(parser)
 
     val app = App(parsedArgs, AppOutput())
@@ -63,7 +68,19 @@ class App(val args: AppArgs, val output: AppOutput) {
     }
 
     fun run() {
-        makeApiRequest(args.request)
+        try {
+            makeApiRequest(args.request)
+        }catch (e: ShowHelpException){
+            val writer = StringWriter()
+
+            e.printUserMessage(
+                    writer,
+                    progName = "apitool",
+                    columns = 70)
+
+            output.print(writer.buffer)
+        }
+
     }
 
     private fun setupJsonPathDefaults(){
