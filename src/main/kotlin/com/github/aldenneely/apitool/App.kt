@@ -13,6 +13,7 @@ import java.text.ParseException
 
 import java.text.SimpleDateFormat
 import java.util.Date
+import com.strategicgains.util.date.DateAdapter
 
 import com.github.salomonbrys.kotson.*
 import com.jayway.jsonpath.spi.json.GsonJsonProvider
@@ -22,11 +23,11 @@ import com.jayway.jsonpath.spi.mapper.MappingProvider
 
 object GithubDateParser {
     private val DATE_FORMAT_STRING = "2011-09-06T17:26:27Z"
-    private val format = SimpleDateFormat(DATE_FORMAT_STRING)
+    private val parser = DateAdapter()
 
     fun parse(date: String): Date? {
         return try {
-            format.parse(date)
+            parser.parse(date)
         } catch (e: ParseException) {
             null
         }
@@ -117,7 +118,7 @@ class App(val args: AppArgs, val output: AppOutput) {
 
             when (result) {
                 is Result.Failure -> {
-                    output.fatal("Could not perform request: ${result}")
+                    output.fatal("Could not perform request: $result")
                 }
 
                 is Result.Success -> {
