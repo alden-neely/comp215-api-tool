@@ -20,3 +20,13 @@ optional arguments:
   --deadline DEADLINE   highlight late events in red
 ```
 
+A sample command usage for looking for late submissions could be the following:
+
+```
+apitool -r /orgs/RiceComp215/events \
+    --filter [?(@.repo.name ~= 'comp215-fall2017-week03-queues-.+')] \
+    --deadline 2017-09-13T24:00:00Z
+```
+
+this would print URLs to access github api JSON information for each "offending repository".
+
