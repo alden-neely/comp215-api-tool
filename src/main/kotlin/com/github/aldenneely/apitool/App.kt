@@ -25,10 +25,16 @@ import java.io.StringWriter
 
 import com.github.aldenneely.apitool.logging.*
 
+/**
+ * parses strings in the date format used by github
+ */
 object GithubDateParser {
     private val DATE_FORMAT_STRING = "2011-09-06T17:26:27Z"
     private val parser = DateAdapter()
 
+    /**
+     * parses strings in the date format used by github
+     */
     fun parse(date: String): Date? {
         return try {
             parser.parse(date)
@@ -47,18 +53,54 @@ fun main(args: Array<String>) {
     app.run()
 }
 
-class App(val args: AppArgs, val output: Logger) {
+/**
+ * wrapper around the Github REST API.
+ */
+object GithubApi {
 
     val GITHUB_URL_HEAD = "https://api.github.com"
+
+    /**
+     * make a GET reqeust to github, and run callback on
+     * the results.
+     */
+    fun request(requestUrl: String, callback: (String)->Unit) {
+
+        val url = GITHUB_URL_HEAD + requestUrl
+
+        url.httpGet().responseString { _, _, result ->
+
+            when (result) {
+                is Result.Failure -> {
+                    Logger.DEFAULT.fatal("Could not perform request: $result")
+                }
+
+                is Result.Success -> {
+                    val resp = result.get()
+                    callback(resp)
+                }
+            }
+
+        }
+    }
+}
+
+/**
+ * the main application functionality
+ */
+class App(val args: AppArgs, val output: Logger){
 
     init {
         setupJsonPathDefaults()
     }
 
+    /**
+     * run the application (main entry point).
+     */
     fun run() {
         try {
-            makeApiRequest(args.request, this::processApiOutput)
-        }catch (e: ShowHelpException){
+            GithubApi.request(args.request, this::processApiOutput)
+        } catch (e: ShowHelpException){
             val writer = StringWriter()
 
             e.printUserMessage(
@@ -71,10 +113,15 @@ class App(val args: AppArgs, val output: Logger) {
 
     }
 
+    /**
+     * Initialize the JSONPath library to use GSON-style json representation,
+     * as this is the representation other parts of our app uses.
+     */
     private fun setupJsonPathDefaults(){
         Configuration.setDefaults(object: Configuration.Defaults {
 
             val jsonProvider = GsonJsonProvider()
+
             override fun jsonProvider(): JsonProvider {
                 return jsonProvider
             }
@@ -92,59 +139,58 @@ class App(val args: AppArgs, val output: Logger) {
 
     }
 
+    /**
+     * filter and show the json loaded from GitHub.
+     */
     private fun processApiOutput(jsonSrc: String) {
-        val filtered: com.google.gson.JsonArray = if(args.filter != null) {
-            JsonPath.read(jsonSrc, args.filter)
-        } else {
-            JsonPath.read(jsonSrc, "$")
+
+        // JSONPath query which matches any json
+        // without filtering or modification
+        val ALLPASS_QUERY = "$"
+
+        // filter the results by the user-supplied JSONPath query
+        val filteredByQuery: com.google.gson.JsonArray = when (args.filter) {
+            null -> JsonPath.read(jsonSrc, ALLPASS_QUERY)
+            else -> JsonPath.read(jsonSrc, args.filter)
         }
 
-        val results = filtered
-
-        val dateFilteredResults = if(args.deadline != null) {
-            results.filter {
+        // filter by the user-supplied time threshold
+        val filteredByQueryAndTime = when (args.deadline) {
+            null -> filteredByQuery
+            else -> filteredByQuery.filter {
                 val dateCreated = GithubDateParser.parse(it["created_at"].string)
 
                 dateCreated?.after(args.deadline) ?: false
             }
-        } else {
-            results
         }
 
-        /* show output */
-        dateFilteredResults.forEach { output.print(it["repo"]["url"].string) }
+        // log output to the console
+        filteredByQueryAndTime.forEach { output.print(it["repo"]["url"].string) }
     }
 
-    private fun makeApiRequest(requestUrl: String, callback: (String)->Unit) {
 
-        val url = GITHUB_URL_HEAD + requestUrl
-
-        url.httpGet().responseString { _, _, result ->
-
-            when (result) {
-                is Result.Failure -> {
-                    output.fatal("Could not perform request: $result")
-                }
-
-                is Result.Success -> {
-                    val resp = result.get()
-                    callback(resp)
-                }
-            }
-
-        }
-    }
 }
 
-
+/**
+ * CLI argument parser.
+ */
 class AppArgs(parser: ArgParser) {
 
+    /**
+     * the API request URL
+     */
     val request by parser.storing("-r", "--request",
             help = "specify the GitHub api request URL to use")
 
+    /**
+     * the JSONPath expression to filter the JSON
+     */
     val filter by parser.storing("-f", "--filter",
             help = "filter the API results by a manual JsonPath query").default(null)
 
+    /**
+     * the time threshold for events
+     */
     val deadline by parser.storing("-d", "--deadline",
             help = "set the deadline for the events, and highlight late events in red") { GithubDateParser.parse(this) }
             .default(null)
