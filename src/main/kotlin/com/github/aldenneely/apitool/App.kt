@@ -5,13 +5,11 @@ import com.xenomachina.argparser.ArgParser
 import com.github.kittinunf.fuel.*
 import com.github.kittinunf.result.Result
 
-import kotlin.system.exitProcess
 
 import com.jayway.jsonpath.*
 import com.xenomachina.argparser.default
 import java.text.ParseException
 
-import java.text.SimpleDateFormat
 import java.util.Date
 import com.strategicgains.util.date.DateAdapter
 
@@ -22,8 +20,10 @@ import com.jayway.jsonpath.spi.mapper.GsonMappingProvider
 import com.jayway.jsonpath.spi.mapper.MappingProvider
 import com.xenomachina.argparser.DefaultHelpFormatter
 import com.xenomachina.argparser.ShowHelpException
-import java.io.BufferedWriter
+
 import java.io.StringWriter
+
+import com.github.aldenneely.apitool.logging.*
 
 object GithubDateParser {
     private val DATE_FORMAT_STRING = "2011-09-06T17:26:27Z"
@@ -43,23 +43,11 @@ fun main(args: Array<String>) {
 
     val parsedArgs = AppArgs(parser)
 
-    val app = App(parsedArgs, AppOutput())
+    val app = App(parsedArgs, Logger.DEFAULT)
     app.run()
 }
 
-class AppOutput {
-
-    fun print(out: Any) {
-        println(out)
-    }
-
-    fun fatal(out: Any) {
-        println("FATAL ERROR: $out")
-        exitProcess(1)
-    }
-}
-
-class App(val args: AppArgs, val output: AppOutput) {
+class App(val args: AppArgs, val output: Logger) {
 
     val GITHUB_URL_HEAD = "https://api.github.com"
 
@@ -69,7 +57,7 @@ class App(val args: AppArgs, val output: AppOutput) {
 
     fun run() {
         try {
-            makeApiRequest(args.request)
+            makeApiRequest(args.request, this::processApiOutput)
         }catch (e: ShowHelpException){
             val writer = StringWriter()
 
@@ -127,7 +115,7 @@ class App(val args: AppArgs, val output: AppOutput) {
         dateFilteredResults.forEach { output.print(it["repo"]["url"].string) }
     }
 
-    private fun makeApiRequest(requestUrl: String) {
+    private fun makeApiRequest(requestUrl: String, callback: (String)->Unit) {
 
         val url = GITHUB_URL_HEAD + requestUrl
 
@@ -140,7 +128,7 @@ class App(val args: AppArgs, val output: AppOutput) {
 
                 is Result.Success -> {
                     val resp = result.get()
-                    processApiOutput(resp)
+                    callback(resp)
                 }
             }
 
